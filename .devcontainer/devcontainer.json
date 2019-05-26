@@ -1,0 +1,10 @@
+{
+    "name": "MSAL.ts",
+    "dockerFile": "Dockerfile",
+    "appPort": 3000,
+    "extensions": [
+        "ms-vscode.vscode-typescript-tslint-plugin",
+        "orta.vscode-jest"
+    ],
+    "postCreateCommand": "yarn install"
+}
