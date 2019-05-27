@@ -1,10 +1,23 @@
+import * as httpm from 'typed-rest-client/HttpClient';
 import { Url } from "url";
 import { RequestContext } from "../core/RequestContext";
+import { HttpMethod } from "./HttpMethod";
+import { HttpResponse } from "./HttpResponse";
 import { IHttpManager } from "./IHttpManager";
 import { InstanceDiscoveryResponse } from "./InstanceDiscoveryResponse";
 import { MsalTokenResponse } from "./MsalTokenResponse";
-import { HttpResponse } from "./HttpResponse";
+import { OAuth2ResponseBase } from './OAuth2ResponseBase';
 
+class ResponseCreator<T extends OAuth2ResponseBase> {
+    constructor(private instanceType: new(json: any) => T) {
+    }
+
+    public Deserialize(json: any): T {
+        return new this.instanceType(json);
+    }
+}
+
+// tslint:disable-next-line: max-classes-per-file
 export class OAuth2Client {
     private bodyParameters: Map<string, string>;
     private headers: Map<string, string>;
@@ -31,26 +44,35 @@ export class OAuth2Client {
     public async DiscoverAadInstanceAsync(
         endpoint: Url,
         requestContext: RequestContext) : Promise<InstanceDiscoveryResponse> {
-        return await this.ExecuteRequestAsync<InstanceDiscoveryResponse>(endpoint, HttpMethod.Get, requestContext);
+        return await this.ExecuteRequestAsync<InstanceDiscoveryResponse>(
+            InstanceDiscoveryResponse,
+            endpoint,
+            HttpMethod.Get,
+            requestContext);
     }
 
     public async GetTokenAsync(endPoint: Url, requestContext: RequestContext): Promise<MsalTokenResponse> {
-        return await this.ExecuteRequestAsync<MsalTokenResponse>(endPoint, HttpMethod.Post, requestContext);
+        return await this.ExecuteRequestAsync<MsalTokenResponse>(
+            MsalTokenResponse,
+            endPoint,
+            HttpMethod.Post,
+            requestContext);
     }
 
-    private async ExecuteRequestAsync<T>(
+    private async ExecuteRequestAsync<T extends OAuth2ResponseBase>(
+        responseType: new (json: any) => T,
         endpoint: Url,
         httpMethod: HttpMethod,
-        requestContext: RequestContext) : Promise<T> {
+        requestContext: RequestContext): Promise<T> {
 
         // todo: telemetry correlation id
         // todo: clientname/clientversion
 
-        const endpointUri = this.CreateFullEndpointUri(endpoint);
+        const endpointUri = endpoint; // todo: this.CreateFullEndpointUrl(endpoint);
 
-        var response: HttpResponse;
+        let response: HttpResponse;
 
-        if (httpMethod === httpMethod.Post) {
+        if (httpMethod === HttpMethod.Post) {
             response = await this.httpManager.SendPostAsync(endpointUri, this.headers, this.bodyParameters);
         } else {
             response = await this.httpManager.SendGetAsync(endpointUri, this.headers);
@@ -58,21 +80,27 @@ export class OAuth2Client {
 
         // todo: telemetry
 
-        return this.CreateResponse<T>(response, requestContext);
+        return this.CreateResponse<T>(responseType, response, requestContext);
     }
 
-    private async CreateResponse<T>(response: HttpResponse, requestContext: RequestContext): Promise<T> {
-        if (response.StatusCode !== HttpStatusCode.OK) {
+    private async CreateResponse<T extends OAuth2ResponseBase>(
+        responseType: new (json: any) => T,
+        response: HttpResponse,
+        requestContext: RequestContext): Promise<T> {
+
+        if (response.StatusCode !== httpm.HttpCodes.OK) {
             this.CreateErrorResponse(response, requestContext);
         }
 
-        Object.create(typeof(T).prototype)
-
-        return JsonHelper.DeserializeFromJson<T>(response.Body);
-
+        const json = JSON.parse(response.Body);
+        const creator = new ResponseCreator<T>(responseType);
+        return creator.Deserialize(json);
     }
 
-    private CreateErrorResponse(response: HttpResponse, requestContext: RequestContext)
-
+    private CreateErrorResponse(
+        response: HttpResponse,
+// tslint:disable-next-line: no-empty
+        requestContext: RequestContext) {
+        // todo: implement error handling
     }
 }

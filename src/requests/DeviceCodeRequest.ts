@@ -6,6 +6,7 @@ import { IServiceBundle } from "../core/IServiceBundle";
 import { AuthenticationRequestParameters } from "./AuthenticationRequestParameters";
 import { RequestBase } from "./RequestBase";
 import { OAuth2Parameter } from "../http/OAuth2Parameter";
+import { OAuth2Client } from "../http/OAuth2Client";
 
 
 export class DeviceCodeRequest extends RequestBase {
@@ -40,9 +41,9 @@ export class DeviceCodeRequest extends RequestBase {
         // add profile
         // add openid
 
-        client.AddBodyParamter(OAuth2Parameter.ClientId, this.authenticationRequestParameters.ClientId);
-        client.AddBodyParamter(OAuth2Parameter.Scope, ScopesToSingleString(deviceCodeScopes));
-        client.AddBodyParamter(OAuth2Parameter.Claims, this.authenticationRequestParameters.Claims);
+        client.AddBodyParameter(OAuth2Parameter.ClientId, this.authenticationRequestParameters.ClientId);
+        client.AddBodyParameter(OAuth2Parameter.Scope, ScopesToSingleString(deviceCodeScopes));
+        client.AddBodyParameter(OAuth2Parameter.Claims, this.authenticationRequestParameters.Claims);
 
         const deviceCodeEndpoint: string = this.authenticationRequestParameters
             .Endpoints

@@ -1,26 +1,53 @@
-import { IFromJsonable } from "./IFromJsonable";
 import { OAuth2ResponseBase } from "./OAuth2ResponseBase";
 
-function staticImplements<T>() {
-// tslint:disable-next-line: no-unused-expression
-    return <U extends T>(constructor: U) => {constructor};
+interface IMsalTokenResponsePayload {
+    token_type: string;
+    access_token: string;
+    refresh_token: string;
+    id_token: string;
+    scope: string;
+    client_info: string;
+    expires_in: number;
+    cloud_instance_host_name: string;
+    // created_on: number;
+    ext_expires_in: number;
+    authority: string;
+    foci: string;
 }
 
-@staticImplements<IFromJsonable>()
 export class MsalTokenResponse extends OAuth2ResponseBase {
-    public TokenType: string;
-    public AccessToken: string;
-    public RefreshToken: string;
-    public Scope: string;
-    public ClientInfo: string;
-    public IdToken: string;
-    public AccessTokenExpiresOn: Date;
-    public AccessTokenExtendedExpiresOn: Date;
-    public FamilyId: string;
+    private tokenType: string;
+    private accessToken: string;
+    private refreshToken: string;
+    private scope: string;
+    private clientInfo: string;
+    private idToken: string;
+    // private accessTokenExpiresOn: Date;
+    // private accessTokenExtendedExpiresOn: Date;
+    private familyId: string;
 
     private expiresIn: number;
     private extendedExpiresIn: number;
     private authority: string;
+
+    constructor(payloadJson: any) {
+        super(payloadJson);
+
+        const payload: IMsalTokenResponsePayload = payloadJson;
+        this.tokenType = payload.token_type;
+        this.accessToken = payload.access_token;
+        this.refreshToken = payload.refresh_token;
+        this.scope = payload.scope;
+        this.clientInfo = payload.client_info;
+        this.idToken = payload.id_token;
+        // this.accessTokenExpiresOn = payload.token_type;
+        // this.accessTokenExtendedExpiresOn = payload.token_type;
+        this.familyId = payload.foci;
+
+        this.expiresIn = 0; // todo:
+        this.extendedExpiresIn = 0; // todo:
+        this.authority = payload.authority;
+    }
 
     public get ExpiresIn(): number {
         return this.expiresIn;
