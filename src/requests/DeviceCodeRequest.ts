@@ -1,13 +1,15 @@
-import { AcquireTokenWithDeviceCodeParameters } from "../apiconfig/parameters/acquireTokenWithDeviceCodeParameters";
+import { AcquireTokenWithDeviceCodeParameters } from "../apiconfig/parameters/AcquireTokenWithDeviceCodeParameters";
 import { AuthorityType } from "../appconfig/authorityType";
-import {AuthenticationResult} from "../contracts/AuthenticationResult";
+import { AuthenticationResult } from "../contracts/authenticationResult";
 import { DeviceCodeResult } from "../contracts/DeviceCodeResult";
 import { IServiceBundle } from "../core/IServiceBundle";
+import { DeviceCodeResponse } from "../http/DeviceCodeResponse";
+import { HttpMethod } from "../http/HttpMethod";
+import { OAuth2Client } from "../http/OAuth2Client";
+import { OAuth2GrantType } from "../http/OAuth2GrantType";
+import { OAuth2Parameter } from "../http/OAuth2Parameter";
 import { AuthenticationRequestParameters } from "./AuthenticationRequestParameters";
 import { RequestBase } from "./RequestBase";
-import { OAuth2Parameter } from "../http/OAuth2Parameter";
-import { OAuth2Client } from "../http/OAuth2Client";
-
 
 export class DeviceCodeRequest extends RequestBase {
 
@@ -33,7 +35,7 @@ export class DeviceCodeRequest extends RequestBase {
 
         await this.ResolveAuthorityEndpointsAsync();
 
-        const client = new OAuth2Client(serviceBundle);
+        const client = new OAuth2Client(this.serviceBundle);
 
         const deviceCodeScopes = new Set<string>();
         // union with authenticationrequestparameters scopes
@@ -55,6 +57,7 @@ export class DeviceCodeRequest extends RequestBase {
         builder.AppendQueryParameters(this.authenticationRequestParameters.ExtraQueryParameters);
 
         const response = await client.ExecuteRequestAsync<DeviceCodeResponse>(
+            DeviceCodeResponse,
             builder.Uri,
             HttpMethod.Post,
             this.authenticationRequestParameters.RequestContext);
@@ -74,9 +77,9 @@ export class DeviceCodeRequest extends RequestBase {
     }
 
     private GetBodyParameters(deviceCodeResult: DeviceCodeResult): Map<string, string> {
-        var dict = new Map<string, string>();
-        dict[OAuth2Parameter.GrantType] = OAuth2GrantType.DeviceCode;
-        dict[OAuth2Parameter.DeviceCode] = deviceCodeResult.DeviceCode;
+        const dict = new Map<string, string>();
+        dict.set(OAuth2Parameter.GrantType, OAuth2GrantType.DeviceCode);
+        dict.set(OAuth2Parameter.DeviceCode, deviceCodeResult.DeviceCode);
 
         return dict;
     }

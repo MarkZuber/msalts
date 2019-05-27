@@ -1,5 +1,6 @@
 import * as httpm from 'typed-rest-client/HttpClient';
 import { Url } from "url";
+import { IServiceBundle } from '../core/IServiceBundle';
 import { RequestContext } from "../core/RequestContext";
 import { HttpMethod } from "./HttpMethod";
 import { HttpResponse } from "./HttpResponse";
@@ -24,8 +25,8 @@ export class OAuth2Client {
     private queryParameters: Map<string, string>;
     private httpManager: IHttpManager;
 
-    constructor(httpManager: IHttpManager) {
-        this.httpManager = httpManager;
+    constructor(serviceBundle: IServiceBundle) {
+        this.httpManager = serviceBundle.HttpManager;
         this.bodyParameters = new Map<string, string>();
         this.headers = new Map<string, string>();
         this.queryParameters = new Map<string, string>();
@@ -43,7 +44,7 @@ export class OAuth2Client {
 
     public async DiscoverAadInstanceAsync(
         endpoint: Url,
-        requestContext: RequestContext) : Promise<InstanceDiscoveryResponse> {
+        requestContext: RequestContext): Promise<InstanceDiscoveryResponse> {
         return await this.ExecuteRequestAsync<InstanceDiscoveryResponse>(
             InstanceDiscoveryResponse,
             endpoint,
@@ -59,7 +60,7 @@ export class OAuth2Client {
             requestContext);
     }
 
-    private async ExecuteRequestAsync<T extends OAuth2ResponseBase>(
+    public async ExecuteRequestAsync<T extends OAuth2ResponseBase>(
         responseType: new (json: any) => T,
         endpoint: Url,
         httpMethod: HttpMethod,
