@@ -1,6 +1,9 @@
 import * as net from 'net';
 import * as rpc from 'vscode-jsonrpc';
 
+import { ITokenCacheInternal } from '../tokencache/ITokenCacheInternal';
+import { TokenCache } from '../tokencache/TokenCache';
+import { ApplicationConfiguration } from './applicationConfiguration';
 import { ClientApplicationBase, IClientApplicationBase } from "./clientApplicationBase";
 
 export interface IPublicClientApplication extends IClientApplicationBase {
@@ -8,6 +11,18 @@ export interface IPublicClientApplication extends IClientApplicationBase {
 }
 
 export class PublicClientApplication extends ClientApplicationBase implements IPublicClientApplication {
+
+    private userTokenCache: ITokenCacheInternal;
+
+    public get UserTokenCacheInternal(): ITokenCacheInternal {
+        return this.userTokenCache;
+    }
+
+    constructor(applicationConfiguration: ApplicationConfiguration) {
+        super(applicationConfiguration);
+        this.userTokenCache = new TokenCache();
+    }
+
     public async AcquireTokenWithDeviceCode(): Promise<number> {
 
         const HOST = 'host.docker.internal';

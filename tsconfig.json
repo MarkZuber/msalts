@@ -1,17 +1,18 @@
-{	
-	"compilerOptions": {	
-		"target": "es6",	
-		"module": "commonjs",	
-		"strict": true,	
-		"outDir": "out",	
-		"sourceMap": true	
-	},	
+{
+	"compilerOptions": {
+		"target": "es6",
+		"module": "commonjs",
+		"strict": true,
+		"outDir": "out",
+		"sourceMap": true,
+		"experimentalDecorators": true
+	},
 	"include": [
 		"src/**/*"
 	],
 	"exclude": [
-		"node_modules", 
+		"node_modules",
 		"**/*.spec.ts",
 		"out"
 	]
-} 
+}
