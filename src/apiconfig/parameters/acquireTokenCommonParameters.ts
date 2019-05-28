@@ -1,23 +1,22 @@
 import {AuthorityInfo} from "../../appconfig/authorityInfo";
-import { Map } from "../../collections/map";
 
 export class AcquireTokenCommonParameters {
-    private extraQueryParameters: Map<string>;
+    private extraQueryParameters: Map<string, string>;
     private claims: string;
     private scopes: Set<string>;
     private authorityOverride: AuthorityInfo | undefined;
 
     constructor() {
-        this.extraQueryParameters = new Map<string>();
+        this.extraQueryParameters = new Map<string, string>();
         this.claims = "";
         this.scopes = new Set<string>();
     }
 
-    public get ExtraQueryParameters(): Map<string> {
+    public get ExtraQueryParameters(): Map<string, string> {
         return this.extraQueryParameters;
     }
 
-    public set ExtraQueryParameters(extraQueryParameters: Map<string>) {
+    public set ExtraQueryParameters(extraQueryParameters: Map<string, string>) {
          this.extraQueryParameters = extraQueryParameters;
     }
 

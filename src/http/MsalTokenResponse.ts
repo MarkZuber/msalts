@@ -71,4 +71,12 @@ export class MsalTokenResponse extends OAuth2ResponseBase {
     public get Authority(): string {
         return this.authority;
     }
+
+    public get Scope(): string {
+        return this.scope;
+    }
+
+    public set Scope(val: string) {
+        this.scope = val;
+    }
 }

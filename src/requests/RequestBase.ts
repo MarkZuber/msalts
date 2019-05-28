@@ -1,5 +1,9 @@
-import { AuthenticationResult } from "../contracts/AuthenticationResult";
+import { AuthenticationResult } from "../contracts/authenticationResult";
 import { IServiceBundle } from "../core/IServiceBundle";
+import { MsalTokenResponse } from "../http/MsalTokenResponse";
+import { OAuth2Client } from "../http/OAuth2Client";
+import { OAuth2Parameter } from "../http/OAuth2Parameter";
+import { OAuth2Value } from "../http/OAuth2Value";
 import { AuthenticationRequestParameters } from "./AuthenticationRequestParameters";
 
 export abstract class RequestBase {
@@ -41,36 +45,53 @@ export abstract class RequestBase {
         tokenEndpoint: string,
         additionalBodyParameters: Map<string, string>) {
         const client = new OAuth2Client(this.serviceBundle);
-        client.AddBodyParameter(OAuth2Parameter.ClientId, AuthenticationRequestParameters.ClientId);
+        client.AddBodyParameter(OAuth2Parameter.ClientId, this.authenticationRequestParameters.ClientId);
         client.AddBodyParameter(OAuth2Parameter.ClientInfo, "1");
 
-        client.AddBodyParameter(OAuth2Parameter.Scope,
-        this.GetDecoratedScope(AuthenticationRequestParameters.Scope).AsSingleString());
+        client.AddBodyParameter(
+            OAuth2Parameter.Scope,
+            this.scopeSetToString(this.GetDecoratedScope(this.authenticationRequestParameters.Scope)));
 
-        client.AddQueryParameter(OAuth2Parameter.Claims, AuthenticationRequestParameters.Claims);
+        client.AddQueryParameter(OAuth2Parameter.Claims, this.authenticationRequestParameters.Claims);
+        additionalBodyParameters.forEach((value, key) => client.AddBodyParameter(key, value));
 
-        foreach (var kvp in additionalBodyParameters)
-        {
-            client.AddBodyParameter(kvp.Key, kvp.Value);
-        }
+        return await this.SendHttpMessageAsync(client, tokenEndpoint);
+    }
 
-        return await this.SendHttpMessageAsync(client, tokenEndpoint).ConfigureAwait(false);
+    protected GetDecoratedScope(inputScope: Set<string>): Set<string> {
+        const set = new Set<string>(inputScope);
+        OAuth2Value.ReservedScopes.forEach((value) => set.add(value));
+        return set;
+    }
+
+    protected async ResolveAuthorityEndpointsAsync(): Promise<void> {
+        await this
+            .authenticationRequestParameters
+            .Authority
+            .UpdateCanonicalAuthorityAsync(this.authenticationRequestParameters.RequestContext);
+
+        this.authenticationRequestParameters.Endpoints =
+            await this.serviceBundle.AuthorityEndpointResolutionManager.ResolveEndpointsAsync(
+                this.authenticationRequestParameters.AuthorityInfo,
+                this.authenticationRequestParameters.LoginHint,
+                this.authenticationRequestParameters.RequestContext);
+    }
+
+    private scopeSetToString(input: Set<string>): string {
+        return Array.from(input.values()).join(' ');
     }
 
     private async SendHttpMessageAsync(
         client: OAuth2Client, tokenEndpoint: string): Promise<MsalTokenResponse> {
-        const builder = new UriBuilder(tokenEndpoint);
-        builder.AppendQueryParameters(this.authenticationRequestParameters.ExtraQueryParameters);
-        const msalTokenResponse =
-            await client
-                .GetTokenAsync(builder.Uri,
-                    this.authenticationRequestParameters.RequestContext)
-                .ConfigureAwait(false);
+        const params = new URLSearchParams();
+        this.authenticationRequestParameters.ExtraQueryParameters.forEach((value, key) => params.append(key, value));
+        const url = new URL(tokenEndpoint + '?' + params.toString());
 
-        if (string.IsNullOrEmpty(msalTokenResponse.Scope))
-        {
-            msalTokenResponse.Scope = this.authenticationRequestParameters.Scope.AsSingleString();
-            // this.authenticationRequestParameters.RequestContext.Logger.Info("ScopeSet was missing from the token response, so using developer provided scopes in the result");
+        const msalTokenResponse =
+            await client.GetTokenAsync(url, this.authenticationRequestParameters.RequestContext);
+
+        if (!msalTokenResponse.Scope) {
+            msalTokenResponse.Scope = this.scopeSetToString(this.authenticationRequestParameters.Scope);
         }
 
         return msalTokenResponse;

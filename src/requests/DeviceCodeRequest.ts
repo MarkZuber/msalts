@@ -1,10 +1,11 @@
-import { AcquireTokenWithDeviceCodeParameters } from "../apiconfig/parameters/AcquireTokenWithDeviceCodeParameters";
+import { AcquireTokenWithDeviceCodeParameters } from "../apiconfig/parameters/AcquiretokenWithDeviceCodeParameters";
 import { AuthorityType } from "../appconfig/authorityType";
 import { AuthenticationResult } from "../contracts/authenticationResult";
 import { DeviceCodeResult } from "../contracts/DeviceCodeResult";
 import { IServiceBundle } from "../core/IServiceBundle";
 import { DeviceCodeResponse } from "../http/DeviceCodeResponse";
 import { HttpMethod } from "../http/HttpMethod";
+import { MsalTokenResponse } from "../http/MsalTokenResponse";
 import { OAuth2Client } from "../http/OAuth2Client";
 import { OAuth2GrantType } from "../http/OAuth2GrantType";
 import { OAuth2Parameter } from "../http/OAuth2Parameter";
@@ -29,9 +30,9 @@ export class DeviceCodeRequest extends RequestBase {
      }
 
     protected async ExecuteAsync(): Promise<AuthenticationResult> {
-        if (this.serviceBundle.Config.AuthorityInfo.AuthorityType === AuthorityType.Adfs) {
-            throw new Error("Adfs does not support device code flow");
-        }
+        // if (this.serviceBundle.Config.AuthorityInfo.AuthorityType === AuthorityType.Adfs) {
+        //     throw new Error("Adfs does not support device code flow");
+        // }
 
         await this.ResolveAuthorityEndpointsAsync();
 
@@ -44,7 +45,7 @@ export class DeviceCodeRequest extends RequestBase {
         // add openid
 
         client.AddBodyParameter(OAuth2Parameter.ClientId, this.authenticationRequestParameters.ClientId);
-        client.AddBodyParameter(OAuth2Parameter.Scope, ScopesToSingleString(deviceCodeScopes));
+        client.AddBodyParameter(OAuth2Parameter.Scope, this.scopeSetToString(deviceCodeScopes));
         client.AddBodyParameter(OAuth2Parameter.Claims, this.authenticationRequestParameters.Claims);
 
         const deviceCodeEndpoint: string = this.authenticationRequestParameters
@@ -53,12 +54,14 @@ export class DeviceCodeRequest extends RequestBase {
             .Replace("token", "devicecode")
             .Replace("common", "organizations");
 
-        const builder = new UriBuilder(deviceCodeEndpoint);
-        builder.AppendQueryParameters(this.authenticationRequestParameters.ExtraQueryParameters);
+        const params = new URLSearchParams();
+        this.authenticationRequestParameters.ExtraQueryParameters.forEach((value, key) => params.append(key, value));
+    
+        const url = new URL(deviceCodeEndpoint + '?' + params.toString());
 
         const response = await client.ExecuteRequestAsync<DeviceCodeResponse>(
             DeviceCodeResponse,
-            builder.Uri,
+            url,
             HttpMethod.Post,
             this.authenticationRequestParameters.RequestContext);
 
@@ -74,6 +77,11 @@ export class DeviceCodeRequest extends RequestBase {
         return await this.SendTokenRequestAsync(
             this.authenticationRequestParameters.Endpoints.TokenEndpoint.Replace("common", "organizations"),
             this.GetBodyParameters(deviceCodeResult));
+    }
+
+    // todo: make this method common to use across classes...
+    private scopeSetToString(input: Set<string>): string {
+        return Array.from(input.values()).join(' ');
     }
 
     private GetBodyParameters(deviceCodeResult: DeviceCodeResult): Map<string, string> {
